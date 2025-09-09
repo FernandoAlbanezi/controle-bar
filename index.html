@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planejador de Bar - App Completo e Detalhado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9fafb;
+      color: #1a202c;
+      line-height: 1.6;
+    }
+    h1, h2, h3 {
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+    }
+    th, td {
+      border: 1px solid #cbd5e0;
+      padding: 8px 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #e2e8f0;
+      font-weight: 600;
+    }
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 4px 6px;
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 1rem;
+    }
+    input[type="number"]:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: #3182ce;
+      box-shadow: 0 0 3px #3182ce;
+    }
+    .highlight-high-cost {
+      background-color: #fed7d7;
+      color: #9b2c2c;
+      font-weight: 600;
+    }
+    .highlight-low-margin {
+      background-color: #fefcbf;
+      color: #744210;
+      font-weight: 600;
+    }
+    .highlight-min-stock {
+      background-color: #c6f6d5;
+      color: #22543d;
+      font-weight: 600;
+    }
+    .info-box {
+      background-color: #bee3f8;
+      border-left: 6px solid #3182ce;
+      padding: 12px 16px;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+    .btn-primary {
+      background-color: #3182ce;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s ease;
+      margin-bottom: 1rem;
+    }
+    .btn-primary:hover {
+      background-color: #2c5282;
+    }
+    .btn-danger {
+      background-color: #e53e3e;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      margin: 0 4px;
+      font-size: 0.9rem;
+      transition: background-color 0.3s ease;
+    }
+    .btn-danger:hover {
+      background-color: #c53030;
+    }
+    .chart-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+      margin-bottom: 2rem;
+    }
+    .modal-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: white;
+      border-radius: 8px;
+      max-width: 600px;
+      width: 90%;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: #555;
+    }
+    @media (max-width: 768px) {
+      input[type="number"], input[type="text"] {
+        width: 100%;
+      }
+      .btn-primary {
+        padding: 8px 16px;
+      }
+      .modal {
+        max-width: 95%;
+      }
+    }
+  </style>
+</head>
+<body class="container mx-auto p-6">
+  <h1 class="text-4xl text-center mb-6">Planejador de Bar - App Completo e Detalhado</h1>
+
+  <div class="info-box">
+    <strong>Bem-vindo ao seu Planejador de Bar:</strong> Adicione produtos, custos e utensílios. Os cálculos são feitos automaticamente. Clique em "Ver Detalhes" em cada produto para ver lucro, receita e mais. Tudo é salvo localmente para não perder dados!
+  </div>
+
+  <!-- Custos Operacionais -->
+  <section class="mb-8">
+    <h2 class="text-2xl mb-4">Custos Operacionais Diários e Mensais</h2>
+    <form id="costsForm" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <label>
+        Energia Elétrica (R$/dia estimado):
+        <input type="number" id="energyCost" min="0" step="0.01" value="5.00" />
+      </label>
+      <label>
+        Água (R$/dia estimado):
+        <input type="number" id="waterCost" min="0" step="0.01" value="3.00" />
+      </label>
+      <label>
+        Internet (R$/mês):
+        <input type="number" id="internetCost" min="0" step="0.01" value="150.00" />
+      </label>
+      <label>
+        Limpeza (R$/dia estimado):
+        <input type="number" id="cleaningCost" min="0" step="0.01" value="20.00" />
+      </label>
+      <label>
+        Número de Funcionários:
+        <input type="number" id="numEmployees" min="0" step="1" value="3" />
+      </label>
+      <label>
+        Salário Diário por Funcionário (R$):
+        <input type="number" id="salaryPerEmployee" min="0" step="0.01" value="80.00" />
+      </label>
+      <label class="md:col-span-3">
+        Dias de Funcionamento por Mês:
+        <input type="number" id="operationalDays" min="1" max="31" step="1" value="26" />
+      </label>
+    </form>
+  </section>
+
+  <!-- Adicionar Novo Item -->
+  <section class="mb-8 text-center">
+    <button class="btn-primary" id="addItemBtn">Adicionar Novo Item</button>
+    <p class="text-sm text-gray-600 mt-2">Clique para adicionar um novo produto, utensílio ou custo fixo.</p>
+  </section>
+
+  <!-- Tabela de Itens Dinâmica -->
+  <section class="mb-8">
+    <h2 class="text-2xl mb-4">Itens (Produtos e Utensílios)</h2>
+    <p class="mb-4 text-gray-700">Edite os campos para quantidades, preços e vendas. Valores como custo total e margem são calculados automaticamente. Se o estoque estiver baixo ou margem baixa, a linha fica colorida. Clique em "Ver Detalhes" para mais informações sobre cada produto.</p>
+    <div style="overflow-x:auto;">
+      <table id="itemsTable" aria-label="Tabela de itens do bar">
+        <thead>
+          <tr>
+            <th>Ações</th>
+            <th>Item</th>
+            <th>Categoria</th>
+            <th>Qtd Inicial</th>
+            <th>Preço Compra (R$)</th>
+            <th>Preço Venda (R$)</th>
+            <th>Custo Total (R$)</th>
+            <th>Estoque Mín</th>
+            <th>Estoque Máx</th>
+            <th>Vendas Médias/Dia</th>
+            <th>Margem (%)</th>
+            <th>Alerta Estoque</th>
+            <th>Detalhes</th>
+          </tr>
+        </thead>
+        <tbody id="itemsTbody">
+          <!-- Itens serão adicionados dinamicamente aqui -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Resumo -->
+  <section class="mb-8">
+    <h2 class="text-2xl mb-4">Resumo dos Resultados Gerais</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="info-box">
+        <p><strong>Investimento Inicial:</strong> R$ <span id="initialInvestment">0,00</span></p>
+        <p>Valor total para comprar tudo.</p>
+      </div>
+      <div class="info-box">
+        <p><strong>Custos Diários:</strong> R$ <span id="dailyCosts">0,00</span></p>
+        <p>Gastos fixos diários (energia, água, internet, limpeza, salários).</p>
+        <p><strong>Custos Mensais:</strong> R$ <span id="monthlyCosts">0,00</span></p>
+      </div>
+      <div class="info-box">
+        <p><strong>Faturamento Diários:</strong> R$ <span id="dailyRevenue">0,00</span></p>
+        <p>Dinheiro estimado do dia.</p>
+        <p><strong>Faturamento Mensal:</strong> R$ <span id="monthlyRevenue">0,00</span></p>
+      </div>
+      <div class="info-box">
+        <p><strong>Lucro Diário:</strong> R$ <span id="dailyProfit">0,00</span></p>
+        <p>Ganho diário estimado.</p>
+        <p><strong>Lucro Mensal:</strong> R$ <span id="monthlyProfit">0,00</span> (R$ positivo = lucro)</p>
+        <p><strong>Ponto de Equilíbrio Diário:</strong> Qtd <span id="breakEven">0</span> itens vendidos para cobrir custos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gráficos -->
+  <section>
+    <h2 class="text-2xl mb-4">Gráficos para Visão Geral</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="chart-container">
+        <canvas id="investmentChart"></canvas>
+        <p class="text-sm text-gray-600 mt-2">Compara investimento necessário com provável lucro mensal.</p>
+      </div>
+      <div class="chart-container">
+        <canvas id="marginChart"></canvas>
+        <p class="text-sm text-gray-600 mt-2">Margens de lucro dos produtos (maiorior para menores).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal para Detalhes do Produto -->
+  <div id="modal" class="modal-bg" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+    <div class="modal">
+      <button class="modal-close" id="modalCloseBtn" aria-label="Fechar detalhes">&times;</button>
+      <h3 id="modalTitle" class="text-xl font-bold mb-4">Detalhes do Produto</h3>
+      <div id="modalContent" class="space-y-4">
+        <!-- Conteúdo preenchido dinamicamente -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Elementos principais
+    const tbody = document.getElementById('itemsTbody');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const costsForm = document.getElementById('costsForm');
+    const initialInvestmentEl = document.getElementById('initialInvestment');
+    const dailyCostsEl = document.getElementById('dailyCosts');
+    const monthlyCostsEl = document.getElementById('monthlyCosts');
+    const dailyRevenueEl = document.getElementById('dailyRevenue');
+    const monthlyRevenueEl = document.getElementById('monthlyRevenue');
+    const dailyProfitEl = document.getElementById('dailyProfit');
+    const monthlyProfitEl = document.getElementById('monthlyProfit');
+    const breakEvenEl = document.getElementById('breakEven');
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modalContent');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+    // Carregar dados salvos ou iniciar vazios
+    let itemsData = JSON.parse(localStorage.getItem('barPlannerItems')) || [];
+    let costData = JSON.parse(localStorage.getItem('barPlannerCosts')) || {
+      energyCost: 5.00,
+      waterCost: 3.00,
+      internetCost: 150.00,
+      cleaningCost: 20.00,
+      numEmployees: 3,
+      salaryPerEmployee: 80.00,
+      operationalDays: 26
+    };
+
+    // Preencher formulário de custos com dados salvos
+    Object.keys(costData).forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.value = costData[key];
+    });
+
+    // Salvar custos no localStorage
+    function saveCosts() {
+      costData.energyCost = parseFloat(document.getElementById('energyCost').value) || 0;
+      costData.waterCost = parseFloat(document.getElementById('waterCost').value) || 0;
+      costData.internetCost = parseFloat(document.getElementById('internetCost').value) || 0;
+      costData.cleaningCost = parseFloat(document.getElementById('cleaningCost').value) || 0;
+      costData.numEmployees = parseInt(document.getElementById('numEmployees').value) || 0;
+      costData.salaryPerEmployee = parseFloat(document.getElementById('salaryPerEmployee').value) || 0;
+      costData.operationalDays = parseInt(document.getElementById('operationalDays').value) || 26;
+      localStorage.setItem('barPlannerCosts', JSON.stringify(costData));
+    }
+
+    // Adicionar nova linha na tabela
+    function addItemRow(data = {}) {
+      const rowIndex = tbody.children.length;
+      const item = data.item || '';
+      const category = data.category || 'Bebidas';
+      const qty = data.qty || 100;
+      const buyPrice = data.buyPrice || 3.00;
+      const sellPrice = data.sellPrice || 6.00;
+      const minStock = data.minStock || 20;
+      const maxStock = data.maxStock || 200;
+      const avgSales = data.avgSales || 30;
+
+      const row = tbody.insertRow();
+      row.dataset.index = rowIndex;
+      itemsData[rowIndex] = { item, category, qty, buyPrice, sellPrice, minStock, maxStock, avgSales };
+
+      row.innerHTML = `
+        <td><button class="btn-danger" onclick="removeRow(${rowIndex})">Remover</button></td>
+        <td><input type="text" value="${item}"></td>
+        <td><input type="text" value="${category}"></td>
+        <td><input type="number" min="0" step="1" value="${qty}"></td>
+        <td><input type="number" min="0" step="0.01" value="${buyPrice.toFixed(2)}"></td>
+        <td><input type="number" min="0" step="0.01" value="${sellPrice.toFixed(2)}"></td>
+        <td class="costTotal">0,00</td>
+        <td><input type="number" min="0" step="1" value="${minStock}"></td>
+        <td><input type="number" min="0" step="1" value="${maxStock}"></td>
+        <td><input type="number" min="0" step="1" value="${avgSales}"></td>
+        <td class="margin">-</td>
+        <td class="stockAlert">OK</td>
+        <td><button class="btn-primary" onclick="showDetails(${rowIndex})">Ver Detalhes</button></td>
+      `;
+
+      // Eventos de input para atualizar
+      row.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', debounce(() => {
+          const idx = parseInt(row.dataset.index);
+          itemsData[idx] = {
+            item: row.cells[1].querySelector('input').value,
+            category: row.cells[2].querySelector('input').value,
+            qty: parseFloat(row.cells[3].querySelector('input').value) || 0,
+            buyPrice: parseFloat(row.cells[4].querySelector('input').value) || 0,
+            sellPrice: parseFloat(row.cells[5].querySelector('input').value) || 0,
+            minStock: parseFloat(row.cells[7].querySelector('input').value) || 0,
+            maxStock: parseFloat(row.cells[8].querySelector('input').value) || 0,
+            avgSales: parseFloat(row.cells[9].querySelector('input').value) || 0
+          };
+          localStorage.setItem('barPlannerItems', JSON.stringify(itemsData));
+          updateCalculations();
+        }, 300));
+      });
+    }
+
+    // Remover linha
+    function removeRow(index) {
+      tbody.deleteRow(index);
+      itemsData.splice(index, 1);
+      localStorage.setItem('barPlannerItems', JSON.stringify(itemsData));
+      updateCalculations();
+      refreshTableIndices();
+    }
+
+    // Atualizar índices das linhas após remoção
+    function refreshTableIndices() {
+      Array.from(tbody.children).forEach((row, i) => {
+        row.dataset.index = i;
+        row.querySelector('button.btn-danger').setAttribute('onclick', `removeRow(${i})`);
+        row.querySelector('button.btn-primary').setAttribute('onclick', `showDetails(${i})`);
+      });
+    }
+
+    // Carregar itens salvos
+    itemsData.forEach(addItemRow);
+    if (itemsData.length === 0) {
+      addItemRow({ item: 'Cerveja Skol 600ml', category: 'Bebidas', qty: 100, buyPrice: 3.00, sellPrice: 6.00, minStock: 20, maxStock: 200, avgSales: 30 });
+    }
+
+    // Evento para adicionar novo item
+    addItemBtn.addEventListener('click', () => addItemRow());
+
+    // Eventos para custos
+    costsForm.addEventListener('input', debounce(() => {
+      saveCosts();
+      updateCalculations();
+    }, 500));
+
+    // Mostrar detalhes no modal
+    function showDetails(index) {
+      const data = itemsData[index];
+      if (!data) return;
+
+      const qty = data.qty;
+      const buyPrice = data.buyPrice;
+      const sellPrice = data.sellPrice;
+      const avgSales = data.avgSales;
+      const operationalDays = costData.operationalDays || 26;
+
+      const margin = sellPrice > 0 ? ((sellPrice - buyPrice) / buyPrice * 100).toFixed(2) : 0;
+      const dailyRevenue = avgSales * sellPrice;
+      const monthlyRevenue = dailyRevenue * operationalDays;
+      const costPerItem = qty * buyPrice;
+      const profitPerItem = (sellPrice - buyPrice);
+      const dailyProfit = (sellPrice - buyPrice) * avgSales;
+      const monthlyProfit = dailyProfit * operationalDays;
+
+      modalContent.innerHTML = `
+        <p><strong>Nome do Item:</strong> ${data.item}</p>
+        <p><strong>Categoria:</strong> ${data.category}</p>
+        <p><strong>Quantidade Inicial:</strong> ${qty}</p>
+        <p><strong>Preço de Compra:</strong> R$ ${buyPrice.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Preço de Venda:</strong> R$ ${sellPrice.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Custo Total do Estoque:</strong> R$ ${costPerItem.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Margem de Lucro:</strong> ${margin}%</p>
+        <p><strong>Vendas Médias por Dia:</strong> ${avgSales} unidades</p>
+        <p><strong>Lucro por Item Vendido:</strong> R$ ${profitPerItem.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Receita Diária Estimada:</strong> R$ ${dailyRevenue.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Receita Mensal Estimada:</strong> R$ ${monthlyRevenue.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Lucro Diário Estimado:</strong> R$ ${dailyProfit.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Lucro Mensal Estimado:</strong> R$ ${monthlyProfit.toFixed(2).replace('.', ',')}</p>
+        <p><strong>Status Estoque:</strong> ${qty <= data.minStock ? 'Baixo (Repor)' : 'OK'}</p>
+      `;
+      modal.style.display = 'flex';
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    // Fechar modal
+    modalCloseBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    });
+    modal.addEventListener('click', e => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    // Debounce para otimizar performance
+    function debounce(func, delay) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+      };
+    }
+
+    // Atualizar todos os cálculos
+    function updateCalculations() {
+      let totalInvestment = 0;
+      let dailyRevenueGlobal = 0;
+      let totalAvgSales = 0;
+      const rows = tbody.querySelectorAll('tr');
+
+      rows.forEach(row => {
+        const qty = parseFloat(row.cells[3].querySelector('input').value) || 0;
+        const buyPrice = parseFloat(row.cells[4].querySelector('input').value) || 0;
+        const sellPrice = parseFloat(row.cells[5].querySelector('input').value) || 0;
+        const minStock = parseFloat(row.cells[7].querySelector('input').value) || 0;
+        const avgSales = parseFloat(row.cells[9].querySelector('input').value) || 0;
+
+        // Custo total
+        const totalCost = qty * buyPrice;
+        row.cells[6].textContent = totalCost.toFixed(2).replace('.', ',');
+        totalInvestment += totalCost;
+
+        // Margem
+        const marginPercent = sellPrice > 0 && buyPrice > 0 ? ((sellPrice - buyPrice) / buyPrice * 100).toFixed(2) : '-';
+        row.cells[10].textContent = marginPercent;
+
+        // Destaques
+        row.classList.remove('highlight-high-cost', 'highlight-low-margin', 'highlight-min-stock');
+        if (buyPrice > 500) row.classList.add('highlight-high-cost');
+        if (marginPercent !== '-' && parseFloat(marginPercent) < 50) row.classList.add('highlight-low-margin');
+        if (qty <= minStock && qty > 0) row.classList.add('highlight-min-stock');
+
+        // Alerta estoque
+        row.cells[11].textContent = qty <= minStock ? 'Repor' : 'OK';
+
+        // Soma receitas
+        if (sellPrice > 0 && avgSales > 0) {
+          dailyRevenueGlobal += sellPrice * avgSales;
+          totalAvgSales += avgSales;
+        }
+      });
+
+      // Custos operacionais
+      const energy = costData.energyCost;
+      const water = costData.waterCost;
+      const internet = costData.internetCost;
+      const cleaning = costData.cleaningCost;
+      const numEmployees = costData.numEmployees;
+      const salaryPerEmployee = costData.salaryPerEmployee;
+      const operationalDays = costData.operationalDays;
+
+      const internetDaily = internet / 30;
+      const dailyCosts = energy + water + internetDaily + cleaning + (numEmployees * salaryPerEmployee);
+      const monthlyCosts = dailyCosts * operationalDays;
+      const monthlyRevenue = dailyRevenueGlobal * operationalDays;
+      const monthlyProfit = monthlyRevenue - monthlyCosts;
+      const dailyProfit = dailyRevenueGlobal - dailyCosts;
+      const breakEven = totalAvgSales > 0 ? Math.ceil(dailyCosts / (dailyRevenueGlobal / totalAvgSales)) : 0;
+
+      // Atualizar resumo
+      initialInvestmentEl.textContent = totalInvestment.toFixed(2).replace('.', ',');
+      dailyCostsEl.textContent = dailyCosts.toFixed(2).replace('.', ',');
+      monthlyCostsEl.textContent = monthlyCosts.toFixed(2).replace('.', ',');
+      dailyRevenueEl.textContent = dailyRevenueGlobal.toFixed(2).replace('.', ',');
+      monthlyRevenueEl.textContent = monthlyRevenue.toFixed(2).replace('.', ',');
+      dailyProfitEl.textContent = dailyProfit.toFixed(2).replace('.', ',');
+      monthlyProfitEl.textContent = monthlyProfit.toFixed(2).replace('.', ',');
+      breakEvenEl.textContent = breakEven;
+
+      updateCharts(totalInvestment, monthlyProfit, itemsData);
+    }
+
+    // Atualizar gráficos
+    let investmentChart, marginChart;
+
+    function updateCharts(investment, profit, items) {
+      const ctxInvestment = document.getElementById('investmentChart').getContext('2d');
+      const ctxMargin = document.getElementById('marginChart').getContext('2d');
+
+      if (investmentChart) investmentChart.destroy();
+      if (marginChart) marginChart.destroy();
+
+      investmentChart = new Chart(ctxInvestment, {
+        type: 'bar',
+        data: {
+          labels: ['Investimento Inicial', 'Lucro Mensal Estimado'],
+          datasets: [{
+            label: 'R$',
+            data: [investment, profit],
+            backgroundColor: ['#3182ce', '#38a169'],
+            borderColor: ['#2c5282', '#2f855a'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            tooltip: { callbacks: { label: (context) => `R$ ${context.parsed.y.toFixed(2).replace('.', ',')}` } }
+          }
+        }
+      });
+
+      const margins = items.map(i => i.sellPrice > i.buyPrice ? ((i.sellPrice - i.buyPrice) / i.buyPrice * 100) : 0).sort((a, b) => b - a);
+      marginChart = new Chart(ctxMargin, {
+        type: 'bar',
+        data: {
+          labels: margins.map(() => 'Produto'),
+          datasets: [{
+            label: 'Margem (%)',
+            data: margins,
+            backgroundColor: '#3182ce',
+            borderColor: '#2c5282',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (context) => `${context.parsed.x.toFixed(1).replace('.', ',')}%` } }
+          }
+        }
+      });
+    }
+
+    // Inicializar cálculos
+    updateCalculations();
+  </script>
+</body>
+</html>
+</content>
+</create_file>
